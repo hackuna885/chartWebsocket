@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <title>Chart con websocket</title>
+    <style>
+        .centrado {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <h3 class="bg-primary text-white rounded text-center m-5 p-5">Chart websocket</h3>
+                <div>
+                    <table class="table">
+                        <tr>
+                            <td scope="col-md-4">
+                                <label for="producto">Producto</label>
+                                <input type="number" class="form-control" id="producto">
+                            </td>
+                            <td scope="col-md-4">
+                                <label for="cantidad">Cantidad</label>
+                                <input type="number" class="form-control" id="cantidad">
+                            </td>
+                            <td scope="col-md-4">
+                                <div class="centrado" style="height: 100px;">
+                                    <button class="btn btn-primary" id="send">Vender</button>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/chart.js"></script>
+    <script>
+
+        const mydata = [5,12,7,1,22]
+        const updateData = (i, v) => {
+            mydata[i] += v;
+        }
+        const producto = document.getElementById('producto')
+        const cantidad = document.getElementById('cantidad')
+        const send = document.getElementById('send')
+
+        const ctx = document.getElementById('myChart').getContext('2d');
+        const myChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Pantalones', 'Camisas', 'Zapatos', 'Vestidos', 'Accesorios'],
+                datasets: [{
+                    label: '# Ventas',
+                    data: mydata,
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.2)',
+                        'rgba(54, 162, 235, 0.2)',
+                        'rgba(255, 206, 86, 0.2)',
+                        'rgba(75, 192, 192, 0.2)',
+                        'rgba(153, 102, 255, 0.2)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+
+        const ws = new WebSocket('ws://localhost:8080')
+        // const ws = new WebSocket('wss://echo.websocket.org')
+
+        ws.onopen = () => {
+            console.log('Conectado')
+        }
+
+        ws.onerror = e => {
+            console.log('Error en la conexión', e)
+        }
+
+        ws.onmessage = e => {
+            console.log(e.data)
+            const msg = JSON.parse(e.data)
+            updateData(msg.producto, msg.cantidad)
+            myChart.update()
+        }
+
+        send.addEventListener('click', e => {
+            e.preventDefault()
+            const msg = {
+                producto: parseInt(producto.value, 10),
+                cantidad: parseInt(cantidad.value, 10)
+            }
+            ws.send(JSON.stringify(msg))
+        })
+
+
+
+        </script>
+
+</html>
